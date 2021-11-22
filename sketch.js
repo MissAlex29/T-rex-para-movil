@@ -34,7 +34,7 @@ function preload(){
   //Sonidos salto,colisión e hito. 
   jumpSound = loadSound("jump.mp3")
   dieSound = loadSound("die.mp3")
-  checkPointSound = loadSound("checkPoint.mp3")
+  checkPointSound = loadSound("checkpoint.mp3")
 }
 
 //Función de configuración principal 
