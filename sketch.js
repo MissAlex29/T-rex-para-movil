@@ -1,4 +1,3 @@
-//Variables globales 
 var PLAY = 1;
 var END = 0;
 var gameState = PLAY;
@@ -49,6 +48,10 @@ function setup() {
   trex.addAnimation("collided", trex_collided);
   trex.scale = 0.5;
 
+  //Objeto de Suelo invisible - set up
+  invisibleGround = createSprite(width/2,height-10,width,10);
+  invisibleGround.visible = false;
+
   //Objeto suelo - set up
   ground = createSprite(width/2,height-20,width,20);
   ground.addImage("ground",groundImage);
@@ -66,16 +69,18 @@ function setup() {
   gameOver.scale = 0.5;
   restart.scale = 0.5;
 
-  //Objeto de Suelo invisible - set up
-  invisibleGround = createSprite(width/2,height-10,width,10);
-  invisibleGround.visible = false;
-  
+  //Visibilidad de objeto restar y game over
+  gameOver.visible = false;
+  restart.visible = false;
+
   //crear grupos de obstáculos y nubes
-  obstaclesGroup = createGroup();
-  cloudsGroup = createGroup();
+  obstaclesGroup = new Group();
+  cloudsGroup = new Group();
+
   //Establecer colisionador
   trex.setCollider("rectangle",0,0,trex.width,trex.height);
-  trex.debug = true
+  trex.debug = true;
+
   //Inicialización de puntuación
   score = 0;
   
@@ -90,35 +95,38 @@ function draw() {
   
   //Condición para estado de juego PLAY 
   if(gameState === PLAY){
-    //Visibilidad de objeto restar y game over
-    gameOver.visible = false;
-    restart.visible = false;
-    //Velocidad del suelo
-    ground.velocityX = -(4 + 3* score/100)
     //Puntuación
     score = score + Math.round(getFrameRate()/30);
+
+    //Velocidad del suelo
+    ground.velocityX = -(4 + 3* score/100)
+    
     //Hito de puntuación
     if(score>0 && score%100 === 0){
        checkPointSound.play() 
     }
+
+    //Hacer que el Trex salte al presionar la barra espaciadora
+    if(touches.length > 0 | keyDown("space")&& trex.y >= height-120) {
+      trex.velocityY = -12;
+      jumpSound.play();
+      touches = [];
+    }
+    //Agregar gravedad
+    trex.velocityY = trex.velocityY + 0.8
+    
     //Reinicio de posición del suelo
     if (ground.x < 0){
       ground.x = ground.width/2;
     }
-    
-    //Hacer que el Trex salte al presionar la barra espaciadora
-    if(touches.length > 0 | keyDown("space")&& trex.y >= height-120) {
-        trex.velocityY = -12;
-        jumpSound.play();
-        touches = [];
-    }
-    
-    //Agregar gravedad
-    trex.velocityY = trex.velocityY + 0.8
+
+    //Evitar que el Trex caiga
+    trex.collide(invisibleGround);
     //Aparecer las nubes
     spawnClouds();
     //Aparecer obstáculos en el suelo
     spawnObstacles();
+
     //Condición para detección de colisión 
     if(obstaclesGroup.isTouching(trex)){
         //Cambio de estado de juego
@@ -132,51 +140,29 @@ function draw() {
       //Visibilidad de los objetos 
       gameOver.visible = true;
       restart.visible = true;
-     //Cambiar la animación del Trex
+
+      //Velocidad del suelo y T-rex
+      ground.velocityX = 0;
+      trex.velocityY = 0;
+      //Cambiar la animación del Trex
       trex.changeAnimation("collided", trex_collided);
 
-    //Detección del mose sobre Sprite restart
+      //Quitar velocidad a los objetos  
+      obstaclesGroup.setVelocityXEach(0);
+      cloudsGroup.setVelocityXEach(0); 
+
+      //Establecer lifetime (ciclo de vida) para que no sean destruidos nunca
+      obstaclesGroup.setLifetimeEach(-1);
+      cloudsGroup.setLifetimeEach(-1);
+
+      //Detección del mose sobre Sprite restart
       if(touches.length >0 || keyDown("Space")) {
       //Llamado a función reset
         reset();
         touches = 0;
-      }
-      
-      //Velocidad del suelo y T-rex
-      ground.velocityX = 0;
-      trex.velocityY = 0;
-    //Establecer lifetime (ciclo de vida) para que no sean destruidos nunca
-      obstaclesGroup.setLifetimeEach(-1);
-      cloudsGroup.setLifetimeEach(-1);
-    //Quitar velocidad a los objetos  
-      obstaclesGroup.setVelocityXEach(0);
-      cloudsGroup.setVelocityXEach(0);    
+      }  
    }
-  
-  //Evitar que el Trex caiga
-  trex.collide(invisibleGround);
   drawSprites();
-}
-
-//Función para reiniciar juego 
-function reset(){
-  //Cambio de estado de juego
-  gameState = PLAY;
-
-  //Visibilidad de los Sprites 
-  gameOver.visible = false;
-  reset.visible = false;
-
-  //Destrucción de los Grupos de Sprites
-  obstaclesGroup.destroyEach();
-  cloudsGroup.destroyEach();
-
-  //Cambiar animación 
-  trex.changeAnimation("running",trex_running);
-
-  //Reiniciar contador a cero
-  score = 0;
-
 }
 
 //Función para aparecer obstaculos 
@@ -202,7 +188,6 @@ function spawnObstacles(){
               break;
       default: break;
     }
-   
     //Asignar escala y ciclo de vida al obstáculo           
     obstacle.scale = 0.5;
     obstacle.lifetime = 300;
@@ -232,4 +217,23 @@ function spawnClouds() {
     cloudsGroup.add(cloud);
   }
 }
+//Función para reiniciar juego 
+function reset(){
+  //Cambio de estado de juego
+  gameState = PLAY;
 
+  //Visibilidad de los Sprites 
+  gameOver.visible = false;
+  reset.visible = false;
+
+  //Destrucción de los Grupos de Sprites
+  obstaclesGroup.destroyEach();
+  cloudsGroup.destroyEach();
+
+  //Cambiar animación 
+  trex.changeAnimation("running",trex_running);
+
+  //Reiniciar contador a cero
+  score = 0;
+
+}
